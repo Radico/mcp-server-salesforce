@@ -1,4 +1,6 @@
 # Salesforce MCP Server
+[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/tsmztech/mcp-server-salesforce/badge)](https://securityscorecards.dev/viewer/?uri=github.com/tsmztech/mcp-server-salesforce)
+
 
 An MCP (Model Context Protocol) server implementation that integrates Claude with Salesforce, enabling natural language interactions with your Salesforce data and metadata. This server allows Claude to query, modify, and manage your Salesforce objects and records using everyday language.
 
@@ -16,12 +18,26 @@ An MCP (Model Context Protocol) server implementation that integrates Claude wit
 * **Cross-Object Search**: Search across multiple objects using SOSL
 * **Apex Code Management**: Read, create, and update Apex classes and triggers
 * **Intuitive Error Handling**: Clear feedback with Salesforce-specific error details
+* **Switchable Authentication**: Supports multiple orgs. Easily switch your active Salesforce org based on the default org configured in your VS Code workspace (use Salesforce_CLI authentication for this feature).
 
 ## Installation
+
+### Global Installation (npm)
 
 ```bash
 npm install -g @simon/mcp-server-salesforce
 ```
+
+### Claude Desktop Quick Installation
+
+For easy setup with Claude Desktop, download the pre-configured extension:
+
+1. Download [`salesforce-mcp-extension.dxt`](./claude-desktop/salesforce-mcp-extension.dxt) from the `claude-desktop/` folder
+2. Open Claude Desktop → Settings → Extensions
+3. Drag the `.dxt` file into the Extensions window
+4. Configure your Salesforce credentials when prompted
+
+For manual Claude Desktop configuration, see [Usage with Claude Desktop](#usage-with-claude-desktop) below.
 
 ## Tools
 
@@ -44,6 +60,15 @@ Query records with relationship support:
 * Child-to-parent relationships
 * Complex WHERE conditions
 * Example: "Get all Accounts with their related Contacts"
+* Note: For queries with GROUP BY or aggregate functions, use salesforce_aggregate_query
+
+### salesforce_aggregate_query
+Execute aggregate queries with GROUP BY:
+* GROUP BY single or multiple fields
+* Aggregate functions: COUNT, COUNT_DISTINCT, SUM, AVG, MIN, MAX
+* HAVING clauses for filtering grouped results
+* Date/time grouping functions
+* Example: "Count opportunities by stage" or "Find accounts with more than 10 opportunities"
 
 ### salesforce_dml_records
 Perform data operations:
@@ -65,7 +90,17 @@ Manage object fields:
 * Add new custom fields
 * Modify field properties
 * Create relationships
+* Automatically grants Field Level Security to System Administrator by default
+* Use `grantAccessTo` parameter to specify different profiles
 * Example: "Add a Rating picklist field to Account"
+
+### salesforce_manage_field_permissions
+Manage Field Level Security (Field Permissions):
+* Grant or revoke read/edit access to fields for specific profiles
+* View current field permissions
+* Bulk update permissions for multiple profiles
+* Useful for managing permissions after field creation or for existing fields
+* Example: "Grant System Administrator access to Custom_Field__c on Account"
 
 ### salesforce_search_all
 Search across multiple objects:
@@ -122,7 +157,7 @@ Manage debug logs for Salesforce users:
 ## Setup
 
 ### Salesforce Authentication
-You can connect to Salesforce using one of two authentication methods:
+You can connect to Salesforce using one of three authentication methods:
 
 #### 1. Username/Password Authentication (Default)
 1. Set up your Salesforce credentials
@@ -135,9 +170,33 @@ You can connect to Salesforce using one of two authentication methods:
 4. Save the Client ID and Client Secret
 5. **Important**: Note your instance URL (e.g., `https://your-domain.my.salesforce.com`) as it's required for authentication
 
+#### 3. Salesforce CLI Authentication (Recommended for local/dev) (contribution by @andrea9293)
+1. Install and authenticate Salesforce CLI (`sf`).
+2. Make sure your org is authenticated and accessible via `sf org display --json` in the root of your Salesforce project.
+3. The server will automatically retrieve the access token and instance url using the CLI.
+
+
+
 ### Usage with Claude Desktop
 
+
 Add to your `claude_desktop_config.json`:
+
+
+#### For Salesforce CLI Authentication:
+```json
+{
+  "mcpServers": {
+    "salesforce": {
+      "command": "npx",
+      "args": ["-y", "@tsmztech/mcp-server-salesforce"],
+      "env": {
+        "SALESFORCE_CONNECTION_TYPE": "Salesforce_CLI"
+      }
+    }
+  }
+}
+```
 
 #### For Username/Password Authentication:
 ```json
@@ -201,11 +260,36 @@ Add to your `claude_desktop_config.json`:
 "Find all Opportunities over $100k"
 ```
 
+### Aggregate Queries
+```
+"Count opportunities by stage"
+"Show me the total revenue by account"
+"Find accounts with more than 10 opportunities"
+"Calculate average deal size by sales rep and quarter"
+"Get the number of cases by priority and status"
+```
+
 ### Managing Custom Objects
 ```
 "Create a Customer Feedback object"
 "Add a Rating field to the Feedback object"
 "Update sharing settings for the Service Request object"
+```
+Examples with Field Level Security:
+```
+# Default - grants access to System Administrator automatically
+"Create a Status picklist field on Custom_Object__c"
+
+# Custom profiles - grants access to specified profiles
+"Create a Revenue currency field on Account and grant access to Sales User and Marketing User profiles"
+```
+
+### Managing Field Permissions
+```
+"Grant System Administrator access to Custom_Field__c on Account"
+"Give read-only access to Rating__c field for Sales User profile"
+"View which profiles have access to the Custom_Field__c"
+"Revoke field access for specific profiles"
 ```
 
 ### Searching Across Objects

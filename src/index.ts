@@ -12,9 +12,11 @@ import { createSalesforceConnection } from "./utils/connection.js";
 import { SEARCH_OBJECTS, handleSearchObjects } from "./tools/search.js";
 import { DESCRIBE_OBJECT, handleDescribeObject } from "./tools/describe.js";
 import { QUERY_RECORDS, handleQueryRecords, QueryArgs } from "./tools/query.js";
+import { AGGREGATE_QUERY, handleAggregateQuery, AggregateQueryArgs } from "./tools/aggregateQuery.js";
 import { DML_RECORDS, handleDMLRecords, DMLArgs } from "./tools/dml.js";
 import { MANAGE_OBJECT, handleManageObject, ManageObjectArgs } from "./tools/manageObject.js";
 import { MANAGE_FIELD, handleManageField, ManageFieldArgs } from "./tools/manageField.js";
+import { MANAGE_FIELD_PERMISSIONS, handleManageFieldPermissions, ManageFieldPermissionsArgs } from "./tools/manageFieldPermissions.js";
 import { SEARCH_ALL, handleSearchAll, SearchAllArgs, WithClause } from "./tools/searchAll.js";
 import { READ_APEX, handleReadApex, ReadApexArgs } from "./tools/readApex.js";
 import { WRITE_APEX, handleWriteApex, WriteApexArgs } from "./tools/writeApex.js";
@@ -23,6 +25,8 @@ import { WRITE_APEX_TRIGGER, handleWriteApexTrigger, WriteApexTriggerArgs } from
 import { EXECUTE_ANONYMOUS, handleExecuteAnonymous, ExecuteAnonymousArgs } from "./tools/executeAnonymous.js";
 import { MANAGE_DEBUG_LOGS, handleManageDebugLogs, ManageDebugLogsArgs } from "./tools/manageDebugLogs.js";
 
+// Load environment variables (using dotenv 16.x which has no stdout tips)
+// MCP servers require stdout to contain ONLY JSON-RPC messages
 dotenv.config();
 
 const server = new Server(
@@ -43,9 +47,11 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     SEARCH_OBJECTS, 
     DESCRIBE_OBJECT, 
     QUERY_RECORDS, 
+    AGGREGATE_QUERY,
     DML_RECORDS,
     MANAGE_OBJECT,
     MANAGE_FIELD,
+    MANAGE_FIELD_PERMISSIONS,
     SEARCH_ALL,
     READ_APEX,
     WRITE_APEX,
@@ -90,6 +96,24 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           limit: queryArgs.limit as number | undefined
         };
         return await handleQueryRecords(conn, validatedArgs);
+      }
+
+      case "salesforce_aggregate_query": {
+        const aggregateArgs = args as Record<string, unknown>;
+        if (!aggregateArgs.objectName || !Array.isArray(aggregateArgs.selectFields) || !Array.isArray(aggregateArgs.groupByFields)) {
+          throw new Error('objectName, selectFields array, and groupByFields array are required for aggregate query');
+        }
+        // Type check and conversion
+        const validatedArgs: AggregateQueryArgs = {
+          objectName: aggregateArgs.objectName as string,
+          selectFields: aggregateArgs.selectFields as string[],
+          groupByFields: aggregateArgs.groupByFields as string[],
+          whereClause: aggregateArgs.whereClause as string | undefined,
+          havingClause: aggregateArgs.havingClause as string | undefined,
+          orderBy: aggregateArgs.orderBy as string | undefined,
+          limit: aggregateArgs.limit as number | undefined
+        };
+        return await handleAggregateQuery(conn, validatedArgs);
       }
 
       case "salesforce_dml_records": {
@@ -147,9 +171,26 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           relationshipName: fieldArgs.relationshipName as string | undefined,
           deleteConstraint: fieldArgs.deleteConstraint as 'Cascade' | 'Restrict' | 'SetNull' | undefined,
           picklistValues: fieldArgs.picklistValues as Array<{ label: string; isDefault?: boolean }> | undefined,
-          description: fieldArgs.description as string | undefined
+          description: fieldArgs.description as string | undefined,
+          grantAccessTo: fieldArgs.grantAccessTo as string[] | undefined
         };
         return await handleManageField(conn, validatedArgs);
+      }
+
+      case "salesforce_manage_field_permissions": {
+        const permArgs = args as Record<string, unknown>;
+        if (!permArgs.operation || !permArgs.objectName || !permArgs.fieldName) {
+          throw new Error('operation, objectName, and fieldName are required for field permissions management');
+        }
+        const validatedArgs: ManageFieldPermissionsArgs = {
+          operation: permArgs.operation as 'grant' | 'revoke' | 'view',
+          objectName: permArgs.objectName as string,
+          fieldName: permArgs.fieldName as string,
+          profileNames: permArgs.profileNames as string[] | undefined,
+          readable: permArgs.readable as boolean | undefined,
+          editable: permArgs.editable as boolean | undefined
+        };
+        return await handleManageFieldPermissions(conn, validatedArgs);
       }
 
       case "salesforce_search_all": {
