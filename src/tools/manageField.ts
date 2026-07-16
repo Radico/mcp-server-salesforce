@@ -1,5 +1,6 @@
 import { Tool } from "@modelcontextprotocol/sdk/types.js";
 import { FieldMetadataInfo } from "../types/metadata";
+import { escapeSoqlString } from "../utils/soql";
 
 export const MANAGE_FIELD: Tool = {
   name: "salesforce_manage_field",
@@ -149,7 +150,7 @@ async function grantFieldPermissions(conn: any, objectName: string, fieldName: s
     const profileQuery = await conn.query(`
       SELECT Id, Name 
       FROM Profile 
-      WHERE Name IN (${profileNames.map(name => `'${name}'`).join(', ')})
+      WHERE Name IN (${profileNames.map(name => `'${escapeSoqlString(name)}'`).join(', ')})
     `);
 
     if (profileQuery.records.length === 0) {

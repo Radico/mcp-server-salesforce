@@ -7,7 +7,7 @@ We take security seriously. If you discover a security vulnerability, please rep
 ### How to Report
 
 Please use GitHub's private vulnerability reporting:
-- Go to the [Security tab](https://github.com/tsmztech/mcp-server-salesforce/security/advisories)
+- Go to this repository's Security tab
 - Click "Report a vulnerability"
 
 This ensures the report stays private until a fix is available.
@@ -23,7 +23,7 @@ This ensures the report stays private until a fix is available.
 - **NEVER** commit credentials or `.env` files
 - **ALWAYS** use Salesforce Sandbox environments for testing
 - **NEVER** test with production Salesforce data
-- All SOQL inputs are sanitized to prevent injection
+- String literals (e.g. profile/permission set names) are escaped before being interpolated into generated SOQL queries
 
 ## Supported Versions
 

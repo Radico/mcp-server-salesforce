@@ -1,5 +1,5 @@
 # Salesforce MCP Server
-[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/tsmztech/mcp-server-salesforce/badge)](https://securityscorecards.dev/viewer/?uri=github.com/tsmztech/mcp-server-salesforce)
+[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/Radico/mcp-server-salesforce/badge)](https://securityscorecards.dev/viewer/?uri=github.com/Radico/mcp-server-salesforce)
 
 
 An MCP (Model Context Protocol) server implementation that integrates Claude with Salesforce, enabling natural language interactions with your Salesforce data and metadata. This server allows Claude to query, modify, and manage your Salesforce objects and records using everyday language.
@@ -189,7 +189,7 @@ Add to your `claude_desktop_config.json`:
   "mcpServers": {
     "salesforce": {
       "command": "npx",
-      "args": ["-y", "@tsmztech/mcp-server-salesforce"],
+      "args": ["-y", "@simon/mcp-server-salesforce"],
       "env": {
         "SALESFORCE_CONNECTION_TYPE": "Salesforce_CLI"
       }

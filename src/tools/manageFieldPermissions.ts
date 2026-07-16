@@ -1,4 +1,5 @@
 import { Tool } from "@modelcontextprotocol/sdk/types.js";
+import { escapeSoqlString } from "../utils/soql";
 
 export const MANAGE_FIELD_PERMISSIONS: Tool = {
   name: "salesforce_manage_field_permissions",
@@ -62,9 +63,10 @@ export async function handleManageFieldPermissions(conn: any, args: ManageFieldP
   let { profileNames } = args;
 
   try {
-    // Ensure field name has __c suffix if it's a custom field and doesn't already have it
-    const fieldApiName = fieldName.endsWith('__c') || fieldName.includes('.') ? fieldName : `${fieldName}__c`;
-    const fullFieldName = `${objectName}.${fieldApiName}`;
+    // fieldName is expected to be the full API name already (per the tool's
+    // input schema), so standard fields (e.g. "Email") pass through unchanged
+    // and custom fields must already include their "__c" suffix.
+    const fullFieldName = `${objectName}.${fieldName}`;
 
     if (operation === 'view') {
       // Query existing field permissions
@@ -122,7 +124,7 @@ export async function handleManageFieldPermissions(conn: any, args: ManageFieldP
     const profileQuery = await conn.query(`
       SELECT Id, Name 
       FROM Profile 
-      WHERE Name IN (${profileNames.map(name => `'${name}'`).join(', ')})
+      WHERE Name IN (${profileNames.map(name => `'${escapeSoqlString(name)}'`).join(', ')})
     `);
 
     if (profileQuery.records.length === 0) {

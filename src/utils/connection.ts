@@ -8,6 +8,14 @@ import { promisify } from 'util';
 const execAsync = promisify(exec);
 
 /**
+ * Masks credential-bearing fields (e.g. accessToken) before the CLI's raw
+ * JSON output is logged or surfaced in an error message.
+ */
+function redactCliOutput(output: string): string {
+  return output.replace(/("accessToken"\s*:\s*")[^"]*(")/g, '$1[REDACTED]$2');
+}
+
+/**
  * Executes the Salesforce CLI command to get org information
  * @returns Parsed response from sf org display --json command
  */
@@ -32,23 +40,25 @@ async function getSalesforceOrgInfo(): Promise<SalesforceCLIResponse> {
       stderr = 'stderr' in err ? err.stderr || '' : '';
     }
 
+    const redactedStdout = redactCliOutput(stdout);
+    const redactedStderr = redactCliOutput(stderr);
 
     // Log always the output for debug
-    console.error('[Salesforce CLI] STDOUT:', stdout);
+    console.error('[Salesforce CLI] STDOUT:', redactedStdout);
     if (stderr) {
-      console.warn('[Salesforce CLI] STDERR:', stderr);
+      console.warn('[Salesforce CLI] STDERR:', redactedStderr);
     }
     // Try to parse stdout as JSON
     let response: SalesforceCLIResponse;
     try {
       response = JSON.parse(stdout);
     } catch (parseErr) {
-      throw new Error(`Failed to parse Salesforce CLI JSON output.\nSTDOUT: ${stdout}\nSTDERR: ${stderr}`);
+      throw new Error(`Failed to parse Salesforce CLI JSON output.\nSTDOUT: ${redactedStdout}\nSTDERR: ${redactedStderr}`);
     }
 
     // If the command failed (non-zero exit code), throw with details
     if (error || response.status !== 0) {
-      throw new Error(`Salesforce CLI command failed.\nStatus: ${response.status}\nSTDOUT: ${stdout}\nSTDERR: ${stderr}`);
+      throw new Error(`Salesforce CLI command failed.\nStatus: ${response.status}\nSTDOUT: ${redactedStdout}\nSTDERR: ${redactedStderr}`);
     }
 
     // Accept any org that returns accessToken and instanceUrl

@@ -244,7 +244,7 @@ export async function handleAggregateQuery(conn: any, args: AggregateQueryArgs) 
           return `    ${displayName}: ${value !== null && value !== undefined ? value : 'null'}`;
         }
         
-        const value = record[baseField] || record[displayName];
+        const value = record[baseField] ?? record[displayName];
         return `    ${displayName}: ${value !== null && value !== undefined ? value : 'null'}`;
       }).join('\n');
       return `Group ${index + 1}:\n${recordStr}`;
